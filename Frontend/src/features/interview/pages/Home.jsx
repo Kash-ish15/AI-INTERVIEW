@@ -2,15 +2,34 @@ import React, { useState, useRef } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
+import { useAuth } from '../../auth/hooks/useAuth.js'
 
 const Home = () => {
     const { loading, generateReport, reports } = useInterview()
+    const { handleLogout } = useAuth()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const [ error, setError ] = useState(null)
+    const [ resumeSubmitted, setResumeSubmitted ] = useState(false)
+    const [ resumeSelected, setResumeSelected ] = useState(false)
+    const [ resumeName, setResumeName ] = useState("")
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
+
+    const handleResumeChange = (e) => {
+        const file = e.target?.files?.[0]
+        if (file) {
+            setResumeSelected(true)
+            setResumeName(file.name)
+            // Trigger visual success state immediately
+            setResumeSubmitted(true)
+        } else {
+            setResumeSelected(false)
+            setResumeName("")
+            setResumeSubmitted(false)
+        }
+    }
 
     const handleGenerateReport = async () => {
         setError(null)
@@ -20,6 +39,14 @@ const Home = () => {
             navigate(`/interview/${data._id}`)
         } else {
             setError("Failed to generate report. Please check your inputs and try again.")
+        }
+    }
+
+    const onLogoutClick = async () => {
+        try {
+            await handleLogout()
+        } finally {
+            navigate("/login")
         }
     }
 
@@ -72,6 +99,16 @@ const Home = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                             </span>
                             <h2>Your Profile</h2>
+                            <button
+                                type='button'
+                                className='badge badge--required'
+                                style={{ marginLeft: 'auto', cursor: 'pointer' }}
+                                onClick={onLogoutClick}
+                                aria-label='Logout'
+                                title='Logout'
+                            >
+                                Logout
+                            </button>
                         </div>
 
                         {/* Upload Resume */}
@@ -80,14 +117,22 @@ const Home = () => {
                                 Upload Resume
                                 <span className='badge badge--best'>Best Results</span>
                             </label>
-                            <label className='dropzone' htmlFor='resume'>
+                            <label className={`dropzone ${resumeSubmitted ? 'dropzone--success' : ''}`} htmlFor='resume'>
                                 <span className='dropzone__icon'>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
                                 </span>
                                 <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
                                 <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
+                                <input ref={resumeInputRef} onChange={handleResumeChange} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
                             </label>
+                            {resumeSelected && (
+                                <div className='alert alert--success' role='alert' aria-live='polite'>
+                                    <span className='alert__icon'>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    </span>
+                                    <span className='alert__text'>Resume selected: <strong>{resumeName}</strong></span>
+                                </div>
+                            )}
                         </div>
 
                         {/* OR Divider */}
